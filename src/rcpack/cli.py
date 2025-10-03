@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """CLI for Repository Context Packager."""
 
+from .config_loader import load_config
+
 import argparse
 import sys
 from pathlib import Path

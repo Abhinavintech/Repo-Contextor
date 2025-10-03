@@ -112,7 +112,35 @@ repo-contextor . -f yaml -o project-config.yaml
 repo-contextor . -r --output recent-changes.txt
 
 ```
+## Configuration via TOML
 
+Repo-Contextor supports configuration through a `.repo-contextor.toml` file in the current working directory.  
+This file allows you to avoid typing the same CLI arguments every time.
+
+Example `.repo-contextor.toml`:
+
+```toml
+# Output file to write results
+output = "context.yaml"
+
+# Output format: text, json, or yaml
+format = "yaml"
+
+# Limit to files modified in the last 7 days
+recent = true
+
+# Repository path to analyze (default = current directory)
+path = "."
+```
+### Rules
+- If the `.repo-contextor.toml` file is **missing**, the tool falls back to defaults.  
+- If the file is **present but invalid TOML**, the tool prints a clear error message and exits with status code 1.  
+- **Unknown keys** in the TOML file are ignored (safe for future extensions).  
+- **Precedence** of settings is:
+  1. Command-line arguments (highest priority)  
+  2. Values from `.repo-contextor.toml`  
+  3. Built-in defaults (lowest priority)
+     
 ## Output Format
 
 The tool generates a structured text file with the following sections:
