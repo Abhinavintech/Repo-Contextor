@@ -14,15 +14,15 @@ def render_tree(paths: List[str]) -> str:
     """Render a tree view from a list of relative POSIX paths."""
     tree_structure: dict = {}
 
-    for p in paths:
-        parts = Path(p).parts
-        current = tree_structure
-        for part in parts[:-1]:
-            if part not in current:
-                current[part] = {}
-            current = current[part]
-        if parts:
-            current[parts[-1]] = None
+    for file_path in paths:
+        path_parts = Path(file_path).parts
+        current_level = tree_structure
+        for directory_part in path_parts[:-1]:
+            if directory_part not in current_level:
+                current_level[directory_part] = {}
+            current_level = current_level[directory_part]
+        if path_parts:
+            current_level[path_parts[-1]] = None
 
     def _render(structure: dict, prefix: str = "") -> str:
         lines = []

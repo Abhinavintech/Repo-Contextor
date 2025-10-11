@@ -1,6 +1,7 @@
 """Markdown renderer for repository context."""
 
 from typing import Dict, Any
+from ..utils import get_language_from_extension
 
 
 def render_markdown(root: str, repo_info: Dict[str, Any], tree_text: str, 
@@ -59,19 +60,8 @@ def render_markdown(root: str, repo_info: Dict[str, Any], tree_text: str,
         lines.append("")
         
         # Detect language for syntax highlighting
-        ext = file_path.split('.')[-1].lower() if '.' in file_path else ''
-        lang_map = {
-            'py': 'python', 'js': 'javascript', 'ts': 'typescript',
-            'java': 'java', 'cpp': 'cpp', 'c': 'c', 'h': 'c',
-            'cs': 'csharp', 'php': 'php', 'rb': 'ruby',
-            'go': 'go', 'rs': 'rust', 'swift': 'swift',
-            'html': 'html', 'css': 'css', 'scss': 'scss',
-            'json': 'json', 'yaml': 'yaml', 'yml': 'yaml',
-            'xml': 'xml', 'sql': 'sql', 'sh': 'bash',
-            'md': 'markdown', 'dockerfile': 'dockerfile'
-        }
+        language = get_language_from_extension(file_path)
         
-        language = lang_map.get(ext, '')
         lines.append(f"```{language}")
         lines.append(content)
         lines.append("```")

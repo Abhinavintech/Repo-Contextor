@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import List
 import fnmatch
+from .utils import DEFAULT_INCLUDE_EXTENSIONS, ALWAYS_INCLUDE_FILE_NAMES, SKIP_DIRECTORY_NAMES
 
 
 def discover_files(
@@ -20,27 +21,6 @@ def discover_files(
     Returns a list of absolute Paths to files.
     """
 
-    default_include_exts = {
-        '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.cpp', '.c', '.h',
-        '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala',
-        '.html', '.css', '.scss', '.sass', '.less', '.vue', '.svelte',
-        '.md', '.txt', '.rst', '.yaml', '.yml', '.json', '.toml', '.ini',
-        '.cfg', '.conf', '.xml', '.sql', '.sh', '.bash', '.zsh', '.fish',
-    }
-
-    always_include_names = {
-        'README', 'LICENSE', 'CHANGELOG', 'CONTRIBUTING', 'Makefile',
-        'requirements.txt', 'package.json', 'Cargo.toml', 'pyproject.toml',
-        'setup.py', 'setup.cfg', 'pom.xml', 'build.gradle', '.gitignore', '.gitattributes'
-    }
-
-    skip_dir_names = {
-        '.git', '.svn', '.hg', '__pycache__', '.pytest_cache',
-        'node_modules', '.venv', 'venv', 'env', '.env',
-        'build', 'dist', 'target', 'out', '.next', '.nuxt',
-        '.idea', '.vscode', '.vs', 'coverage', '.coverage'
-    }
-
     def matches_any(patterns: List[str], rel_posix: str) -> bool:
         return any(fnmatch.fnmatch(rel_posix, pat) for pat in patterns)
 
@@ -51,32 +31,32 @@ def discover_files(
         if include_patterns:
             return matches_any(include_patterns, rel_posix)
         # default include logic
-        return file_path.name in always_include_names or file_path.suffix.lower() in default_include_exts
+        return file_path.name in ALWAYS_INCLUDE_FILE_NAMES or file_path.suffix.lower() in DEFAULT_INCLUDE_EXTENSIONS
 
     discovered: list[Path] = []
     seen = set()
 
-    for item in inputs:
-        p = item.resolve()
-        if p.is_file():
+    for input_item in inputs:
+        resolved_path = input_item.resolve()
+        if resolved_path.is_file():
             # Skip if excluded or in skipped directory
-            if any(part in skip_dir_names for part in p.parts):
+            if any(part in SKIP_DIRECTORY_NAMES for part in resolved_path.parts):
                 continue
-            if should_take(p):
-                key = p.as_posix()
-                if key not in seen:
-                    seen.add(key)
-                    discovered.append(p)
-        elif p.is_dir():
-            for child in p.rglob('*'):
+            if should_take(resolved_path):
+                path_key = resolved_path.as_posix()
+                if path_key not in seen:
+                    seen.add(path_key)
+                    discovered.append(resolved_path)
+        elif resolved_path.is_dir():
+            for child in resolved_path.rglob('*'):
                 if not child.is_file():
                     continue
-                if any(part in skip_dir_names for part in child.parts):
+                if any(part in SKIP_DIRECTORY_NAMES for part in child.parts):
                     continue
                 if should_take(child):
-                    key = child.resolve().as_posix()
-                    if key not in seen:
-                        seen.add(key)
+                    child_key = child.resolve().as_posix()
+                    if child_key not in seen:
+                        seen.add(child_key)
                         discovered.append(child.resolve())
 
     return sorted(discovered)

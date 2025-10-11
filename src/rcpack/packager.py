@@ -10,15 +10,16 @@ from rcpack.io_utils import read_text_safely, is_binary_file
 from rcpack.renderer import markdown as md_renderer
 from rcpack.renderer.jsonyaml import render_json, render_yaml
 from rcpack.treeview import render_tree
+from rcpack.utils import get_language_from_extension
 
 
 def _find_root(inputs: list[str]) -> Path:
-    paths = [Path(p) for p in inputs]
-    if len(paths) == 1 and Path(paths[0]).is_dir():
-        return paths[0].resolve()
-    parents = [p if p.is_dir() else p.parent for p in paths]
-    root = Path(*Path.commonpath([str(p.resolve()) for p in parents]).split("/"))
-    return root.resolve()
+    input_paths = [Path(input_path) for input_path in inputs]
+    if len(input_paths) == 1 and Path(input_paths[0]).is_dir():
+        return input_paths[0].resolve()
+    parent_dirs = [path if path.is_dir() else path.parent for path in input_paths]
+    common_root = Path(*Path.commonpath([str(path.resolve()) for path in parent_dirs]).split("/"))
+    return common_root.resolve()
 
 
 def build_package(
@@ -43,50 +44,50 @@ def build_package(
     )
 
     files = discover_files(
-        inputs=[Path(p) for p in inputs],
+        inputs=[Path(input_path) for input_path in inputs],
         root=root_abs,
         include_patterns=include_patterns or [],
         exclude_patterns=exclude_patterns or [],
     )
-    rel_files = [f.relative_to(root_abs) for f in files]
+    relative_files = [discovered_file.relative_to(root_abs) for discovered_file in files]
 
-    project_tree = render_tree([p.as_posix() for p in rel_files])
+    project_tree = render_tree([relative_path.as_posix() for relative_path in relative_files])
 
     file_sections: list[dict] = []
     total_lines = 0
     total_chars = 0
 
-    for f in files:
-        rel = f.relative_to(root_abs).as_posix()
+    for discovered_file in files:
+        relative_path = discovered_file.relative_to(root_abs).as_posix()
         try:
-            if is_binary_file(f):
-                content = f"[binary file skipped: {f.name}, {f.stat().st_size} bytes]"
+            if is_binary_file(discovered_file):
+                content = f"[binary file skipped: {discovered_file.name}, {discovered_file.stat().st_size} bytes]"
                 file_sections.append({
-                    "path": rel,
-                    "language": _language_from_ext(f.suffix),
+                    "path": relative_path,
+                    "language": get_language_from_extension(discovered_file.suffix),
                     "content": content,
                     "is_truncated": False,
                 })
                 total_chars += len(content)
                 continue
 
-            content, used_encoding, truncated = read_text_safely(f, max_bytes=max_file_bytes)
+            content, used_encoding, truncated = read_text_safely(discovered_file, max_bytes=max_file_bytes)
             total_lines += content.count("\n") + (1 if content and not content.endswith("\n") else 0)
             total_chars += len(content)
 
             if truncated:
-                note = f"\n\n[... TRUNCATED to first {max_file_bytes} bytes ...]"
-                content = content + note
-                total_chars += len(note)
+                truncation_note = f"\n\n[... TRUNCATED to first {max_file_bytes} bytes ...]"
+                content = content + truncation_note
+                total_chars += len(truncation_note)
 
             file_sections.append({
-                "path": rel,
-                "language": _language_from_ext(f.suffix),
+                "path": relative_path,
+                "language": get_language_from_extension(discovered_file.suffix),
                 "content": content,
                 "is_truncated": truncated,
             })
         except Exception as exc:
-            print(f"[rcpack] error reading {rel}: {exc}", file=sys.stderr)
+            print(f"[rcpack] error reading {relative_path}: {exc}", file=sys.stderr)
             continue
 
     # render in chosen format
@@ -122,14 +123,3 @@ def build_package(
 
     stats = {"files": len(file_sections), "lines": total_lines, "chars": total_chars}
     return out_text, stats
-
-
-def _language_from_ext(ext: str) -> str:
-    ext = ext.lower().lstrip(".")
-    mapping = {
-        "py": "python", "js": "javascript", "ts": "typescript",
-        "json": "json", "md": "markdown", "yml": "yaml", "yaml": "yaml",
-        "toml": "toml", "sh": "bash", "c": "c", "cpp": "cpp",
-        "java": "java", "go": "go", "rs": "rust",
-    }
-    return mapping.get(ext, "")
