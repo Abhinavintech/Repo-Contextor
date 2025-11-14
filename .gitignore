@@ -15,6 +15,9 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+*.egg-info/
+dist/
+build/
 
 # IDE
 .vscode/
