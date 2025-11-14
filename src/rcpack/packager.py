@@ -53,7 +53,8 @@ def build_package(
 
     project_tree = render_tree([relative_path.as_posix() for relative_path in relative_files])
 
-    file_sections: list[dict] = []
+    files_dict: dict[str, str] = {}
+    file_sizes: dict[str, int] = {}
     total_lines = 0
     total_chars = 0
 
@@ -62,12 +63,8 @@ def build_package(
         try:
             if is_binary_file(discovered_file):
                 content = f"[binary file skipped: {discovered_file.name}, {discovered_file.stat().st_size} bytes]"
-                file_sections.append({
-                    "path": relative_path,
-                    "language": get_language_from_extension(discovered_file.suffix),
-                    "content": content,
-                    "is_truncated": False,
-                })
+                files_dict[relative_path] = content
+                file_sizes[relative_path] = discovered_file.stat().st_size
                 total_chars += len(content)
                 continue
 
@@ -80,12 +77,8 @@ def build_package(
                 content = content + truncation_note
                 total_chars += len(truncation_note)
 
-            file_sections.append({
-                "path": relative_path,
-                "language": get_language_from_extension(discovered_file.suffix),
-                "content": content,
-                "is_truncated": truncated,
-            })
+            files_dict[relative_path] = content
+            file_sizes[relative_path] = discovered_file.stat().st_size
         except Exception as exc:
             print(f"[rcpack] error reading {relative_path}: {exc}", file=sys.stderr)
             continue
@@ -96,8 +89,8 @@ def build_package(
             root=str(root_abs),
             repo_info=repo_info,
             tree_text=project_tree,
-            files=file_sections,
-            total_files=len(file_sections),
+            files=files_dict,
+            total_files=len(files_dict),
             total_lines=total_lines,
         )
     elif fmt == "json":
@@ -105,21 +98,25 @@ def build_package(
             root=str(root_abs),
             repo_info=repo_info,
             tree_text=project_tree,
-            files=file_sections,
-            total_files=len(file_sections),
+            files=files_dict,
+            total_files=len(files_dict),
             total_lines=total_lines,
+            recent_files=None,
+            file_sizes=file_sizes,
         )
     elif fmt == "yaml":
         out_text = render_yaml(
             root=str(root_abs),
             repo_info=repo_info,
             tree_text=project_tree,
-            files=file_sections,
-            total_files=len(file_sections),
+            files=files_dict,
+            total_files=len(files_dict),
             total_lines=total_lines,
+            recent_files=None,
+            file_sizes=file_sizes,
         )
     else:
         raise ValueError(f"Unsupported format: {fmt}")
 
-    stats = {"files": len(file_sections), "lines": total_lines, "chars": total_chars}
+    stats = {"files": len(files_dict), "lines": total_lines, "chars": total_chars}
     return out_text, stats
