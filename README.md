@@ -37,11 +37,18 @@ When developers want to get help from ChatGPT, Claude, or other LLMs about their
 
 ### For End Users
 
+Install from PyPI (when published):
+
 ```bash
-# Clone and install
-git clone https://github.com/yourusername/Repo-Contextor.git
-cd Repo-Contextor
-pip install -e .
+# Install latest release from PyPI
+pip install rcpack
+```
+
+If you want to test a pre-release package uploaded to TestPyPI:
+
+```bash
+# Install from TestPyPI (example)
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple rcpack
 ```
 
 ### For Contributors & Local Development
@@ -58,6 +65,26 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 # Install in development mode
 pip install -e .
 ```
+
+## Building and Publishing
+
+You can build source and wheel distributions and upload them to TestPyPI (recommended for testing) and then PyPI.
+
+```bash
+# Build distributions (requires 'build' in your dev deps)
+python -m build
+
+# Upload to TestPyPI for verification (requires 'twine')
+python -m twine upload --repository testpypi dist/*
+
+# After testing, upload to the real PyPI
+python -m twine upload dist/*
+```
+
+Notes:
+- Use TestPyPI first to avoid accidentally publishing broken releases.
+- Update `pyproject.toml` `version` field before creating a new release/tag.
+- Create an annotated git tag for the release (e.g., `v1.0.0`) and push tags: `git tag -a v1.0.0 -m "Release v1.0.0" && git push --follow-tags`.
 
 ## Usage
 
